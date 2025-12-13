@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.ProBuilder.Editor::UnityEditor.ProBuilder.MaterialPalette
   array:
   - {fileID: 2100000, guid: c22777d6e868e4f2fb421913386b154e, type: 2}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 2100000, guid: a66228ddf8f334d498d7bc8398839d72, type: 2}
+  - {fileID: 2100000, guid: 7bca9588a62cff54ea2dc055938c3801, type: 2}
+  - {fileID: 2100000, guid: 6cdbf2b7c4d56394e95ada8ba8365fec, type: 2}
+  - {fileID: 2100000, guid: 01f9e06b475748341a301dc03c2e5fd5, type: 2}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
