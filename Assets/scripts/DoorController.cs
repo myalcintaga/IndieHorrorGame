@@ -1,14 +1,14 @@
 using UnityEngine;
 using System.Collections;
 
+[RequireComponent(typeof(AudioSource))]
 public class DoorController : MonoBehaviour, IInteractable
 {
     [Header("Settings")]
     public Transform doorPivot;
-    public bool isLocked = false;
+    // isLocked değişkeni kaldırıldı
 
     [Header("Puzzle Settings")]
-    // YENİ: Oyuncuyu (Boy0) buraya sürükleyeceğiz
     public Transform playerObject;
     public float requiredHeight = 0.5f;
 
@@ -16,22 +16,27 @@ public class DoorController : MonoBehaviour, IInteractable
     public float openSpeed = 2.0f;
     public float openAngle = 90f;
 
+    [Header("Audio Settings")]
+    public AudioClip openSound;   // Açılma sesi
+    public AudioClip closeSound;  // Kapanma sesi
+    // lockedSound değişkeni kaldırıldı
+
+    private AudioSource audioSource;
     private bool isOpen = false;
     private Coroutine currentAnimation;
 
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+    }
+
     public void Interact()
     {
-        // 1. Kilit Kontrolü
-        if (isLocked)
-        {
-            FindFirstObjectByType<Interactor>().ShowWarningMessage("Door is Locked!");
-            return;
-        }
+        // Kilit kontrol bloğu tamamen çıkarıldı.
 
-        // 2. Yükseklik Kontrolü (Direkt Oyuncuya Göre)
+        // 1. Yükseklik Kontrolü (Sadece kapı kapalıyken açmaya çalışırsan bakar)
         if (!isOpen)
         {
-            // Eğer oyuncuyu atamayı unuttuysan hata vermesin diye kontrol
             if (playerObject == null)
             {
                 Debug.LogError("HATA: Inspector'da Player Object kutusu boş!");
@@ -40,9 +45,6 @@ public class DoorController : MonoBehaviour, IInteractable
 
             float footHeight = playerObject.position.y;
 
-            // Konsola artık DOĞRU (sabit) ayak yüksekliğini yazacak
-            Debug.Log("Sabit Ayak Yüksekliği: " + footHeight);
-
             if (footHeight < requiredHeight)
             {
                 FindFirstObjectByType<Interactor>().ShowWarningMessage("You're too short to reach the handle!");
@@ -50,9 +52,20 @@ public class DoorController : MonoBehaviour, IInteractable
             }
         }
 
-        // 3. Kapı Açma
+        // 2. Kapı Açma / Kapama İşlemi
         isOpen = !isOpen;
 
+        // --- SES ÇALMA ---
+        if (isOpen)
+        {
+            PlaySound(openSound);
+        }
+        else
+        {
+            PlaySound(closeSound);
+        }
+
+        // 3. Animasyon Başlatma
         Quaternion targetRotation;
         if (isOpen) targetRotation = Quaternion.Euler(0, openAngle, 0);
         else targetRotation = Quaternion.Euler(0, 0, 0);
@@ -63,7 +76,7 @@ public class DoorController : MonoBehaviour, IInteractable
 
     public string GetDescription()
     {
-        if (isLocked) return "Locked";
+        // Kilitli yazısı kaldırıldı
         return isOpen ? "Close [E]" : "Open [E]";
     }
 
@@ -76,5 +89,14 @@ public class DoorController : MonoBehaviour, IInteractable
         }
         doorPivot.localRotation = target;
         currentAnimation = null;
+    }
+
+    void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.pitch = Random.Range(0.9f, 1.1f); // Hafif ton farkı ekler, doğal duyulur
+            audioSource.PlayOneShot(clip);
+        }
     }
 }
