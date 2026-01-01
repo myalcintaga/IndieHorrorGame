@@ -9,7 +9,7 @@ namespace Sample
         private Animator _Animator;
         private CharacterController _Ctrl;
         private GameObject _View_Camera;
-        private Transform _Light;
+        // _Light değişkeni silindi (NullReference hatası vermemesi için)
         private SkinnedMeshRenderer _MeshRenderer;
 
         [Header("Camera Settings")]
@@ -19,7 +19,7 @@ namespace Sample
         private float _CameraRadius = 0.25f;
 
         [Header("Movement Settings")]
-        [SerializeField] private float _CrouchCenterOffset = 0f; // Yerin içine giriyorsa bunu AZALT veya 0 yap
+        [SerializeField] private float _CrouchCenterOffset = 0f;
         private float _GravityForce = 10.0f;
 
         private float _OriginalHeight;
@@ -27,7 +27,7 @@ namespace Sample
         private bool _IsCrouching = false;
         private Vector3 _MoveDirection = Vector3.zero;
 
-        // Hash ID'leri (Performans için)
+        // Hash ID'leri
         private static readonly int IdleState = Animator.StringToHash("Base Layer.idle");
         private static readonly int MoveState = Animator.StringToHash("Base Layer.move");
         private static readonly int JumpState = Animator.StringToHash("Base Layer.jump");
@@ -44,7 +44,7 @@ namespace Sample
         private static readonly int SpeedParameter = Animator.StringToHash("Speed");
         private static readonly int JumpPoseParameter = Animator.StringToHash("JumpPose");
 
-        // Durum Kontrolü Dictionary
+        // Durum Kontrolü
         private const int Jump = 1;
         private const int Damage = 2;
         private const int Faint = 3;
@@ -60,9 +60,9 @@ namespace Sample
             _Animator = GetComponent<Animator>();
             _Ctrl = GetComponent<CharacterController>();
             _View_Camera = GameObject.Find("Main Camera");
-            _Light = GameObject.Find("Directional Light").transform;
 
-            // Mesh render path'i bazen değişebilir, hata verirse kontrol et
+            // Işık arama kodu silindi.
+
             Transform bodyTransform = transform.Find("Boy0.Humanoid.Body");
             if (bodyTransform != null)
                 _MeshRenderer = bodyTransform.gameObject.GetComponent<SkinnedMeshRenderer>();
@@ -71,7 +71,8 @@ namespace Sample
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
-            // Orijinal Boyutları Kaydet
+            // Orijinal Boyutları Kaydet 
+            // (Işık hatası giderildiği için burası artık düzgün çalışacak ve eğilme düzelecek)
             _OriginalHeight = _Ctrl.height;
             _OriginalCenterY = _Ctrl.center.y;
         }
@@ -91,7 +92,7 @@ namespace Sample
             }
 
             CAMERA();
-            if (_MeshRenderer != null) DIRECTION_LIGHT();
+            // DIRECTION_LIGHT() çağrısı silindi.
             GRAVITY();
             STATUS();
             CROUCH();
@@ -162,11 +163,7 @@ namespace Sample
             _View_Camera.transform.LookAt(targetPos);
         }
 
-        private void DIRECTION_LIGHT()
-        {
-            Vector3 pos = _Light.position - transform.position;
-            _MeshRenderer.material.SetVector("_LightDir", pos);
-        }
+        // DIRECTION_LIGHT fonksiyonu tamamen silindi.
 
         private void GRAVITY()
         {
@@ -333,15 +330,36 @@ namespace Sample
 
         private void JUMP()
         {
-            if (CheckGrounded())
+            bool isGrounded = CheckGrounded();
+            var stateInfo = _Animator.GetCurrentAnimatorStateInfo(0);
+
+            if (isGrounded)
             {
+                // 1. ZIPLAMAYI BAŞLATMA
                 if (Input.GetKeyDown(KeyCode.Space)
-                    && _Animator.GetCurrentAnimatorStateInfo(0).tagHash != JumpTag
+                    && stateInfo.tagHash != JumpTag
                     && !_Animator.IsInTransition(0))
                 {
                     _Animator.CrossFade(JumpState, 0.1f, 0, 0);
                     _MoveDirection.y = 3.0f;
                     _Animator.SetFloat(JumpPoseParameter, _MoveDirection.y);
+                }
+
+                // 2. YERE İNİŞ DÜZELTMESİ (BU KISIM EKLENDİ)
+                // Zıplama animasyonundaysak VE Yere basıyorsak -> Normale dön
+                else if (stateInfo.fullPathHash == JumpState && !_Animator.IsInTransition(0) && _MoveDirection.y <= 0.1f)
+                {
+                    // Eğer hareket tuşlarına basılıysa KOŞMAYA dön
+                    if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) ||
+                        Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D))
+                    {
+                        _Animator.CrossFade(MoveState, 0.1f, 0, 0);
+                    }
+                    // Hiçbir şeye basılmıyorsa IDLE'a dön
+                    else
+                    {
+                        _Animator.CrossFade(IdleState, 0.1f, 0, 0);
+                    }
                 }
             }
         }
@@ -394,7 +412,7 @@ namespace Sample
                 _Animator.CrossFade(CrouchState, 0.1f, 0, 0);
             }
 
-            // --- AYAĞA KALKMA (DÜZELTİLDİ) ---
+            // --- AYAĞA KALKMA ---
             if (Input.GetKeyUp(KeyCode.C))
             {
                 _IsCrouching = false;
@@ -403,16 +421,13 @@ namespace Sample
                 _Ctrl.height = _OriginalHeight;
                 _Ctrl.center = new Vector3(0, _OriginalCenterY, 0);
 
-                // KRİTİK KONTROL: C'yi bıraktım ama hala yürümek istiyor muyum?
                 if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) ||
                     Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D))
                 {
-                    // Tuşlara basılıysa YÜRÜME animasyonuna geç
                     _Animator.CrossFade(MoveState, 0.1f, 0, 0);
                 }
                 else
                 {
-                    // Hiçbir şeye basmıyorsam DURMA animasyonuna geç
                     _Animator.CrossFade(IdleState, 0.1f, 0, 0);
                 }
             }
