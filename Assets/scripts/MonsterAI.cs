@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.UI; // UI işlemleri için gerekli
+using UnityEngine.UI;
 using System.Collections;
 
 public class MonsterAI : MonoBehaviour
@@ -122,10 +122,11 @@ public class MonsterAI : MonoBehaviour
     {
         isGameEnding = true; // Kilidi kapat
 
-        // Canavarı ve Müziği Durdur
+        // Sadece Canavarı Durdur (Müzik DEVAM EDECEK)
         if (agent != null) agent.isStopped = true;
         if (anim != null) anim.SetFloat("Speed", 0);
-        audioSource.Stop();
+
+        // DİKKAT: audioSource.Stop() buradan kaldırıldı.
 
         // Ekranı Karart (Fade Out)
         if (fadeImage != null)
@@ -133,8 +134,12 @@ public class MonsterAI : MonoBehaviour
             fadeImage.CrossFadeAlpha(1f, fadeDuration, false);
         }
 
-        // Kararma süresi kadar bekle
+        // Kararma süresi kadar bekle (Müzik çalmaya devam ediyor)
         yield return new WaitForSeconds(fadeDuration);
+
+        // --- SAHNE YÜKLENMEDEN HEMEN ÖNCE ---
+        // Müziği burada durduruyoruz ki sahne geçişinde ses takılması olmasın
+        audioSource.Stop();
 
         // 1. TimerManager'a ışınlanma emrini ver
         TimerManager.isinlanacakKonum = salonKapisiKonumu;
@@ -240,27 +245,21 @@ public class MonsterAI : MonoBehaviour
         audioSource.Play();
     }
     // --- GÖRSEL DEBUG (GIZMOS) ---
-    // Bu kod oyunun çalışmasına etki etmez, sadece Scene ekranında çizim yapar.
     private void OnDrawGizmosSelected()
     {
         if (eyes == null) return;
 
-        // 1. Görüş Mesafesi (Sarı Çember)
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(eyes.position, visionDistance);
 
-        // 2. Görüş Açısı (Kırmızı Çizgiler)
         Gizmos.color = Color.red;
 
-        // Açının sağ ve sol sınırlarını hesapla
         Vector3 leftBoundary = DirFromAngle(-visionAngle / 2, false);
         Vector3 rightBoundary = DirFromAngle(visionAngle / 2, false);
 
-        // Çizgileri çiz
         Gizmos.DrawLine(eyes.position, eyes.position + leftBoundary * visionDistance);
         Gizmos.DrawLine(eyes.position, eyes.position + rightBoundary * visionDistance);
 
-        // 3. Eğer oyuncu görüş alanındaysa Mavi çizgi çek
         if (isChasing || (playerTarget != null && CanSeePlayer()))
         {
             Gizmos.color = Color.blue;
@@ -268,12 +267,10 @@ public class MonsterAI : MonoBehaviour
         }
     }
 
-    // Açıyı (Derece) Vektöre çeviren matematiksel yardımcı fonksiyon
     private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
     {
         if (!angleIsGlobal)
         {
-            // Canavarın kendi dönüş açısına (Y ekseni) göre hesapla
             angleInDegrees += eyes.eulerAngles.y;
         }
         return new Vector3(Mathf.Sin(angleInDegrees * Mathf.Deg2Rad), 0, Mathf.Cos(angleInDegrees * Mathf.Deg2Rad));

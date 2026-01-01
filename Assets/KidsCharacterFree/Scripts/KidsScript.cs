@@ -79,6 +79,7 @@ namespace Sample
 
         void Update()
         {
+            if (PauseManager.GameIsPaused) return;
             // Mouse Kilidi Aç/Kapa (ESC ile)
             if (Input.GetKeyDown(KeyCode.Escape))
             {
