@@ -2,16 +2,17 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
 using System.Collections;
+using Sample; // KidsScript'e ulaşmak için bunu ekledik
 
 public class MonsterAI : MonoBehaviour
 {
     [Header("Hedef ve Konum")]
     public Transform playerTarget;
-    public Vector3 salonKapisiKonumu; // Oyuncunun doğacağı yer
+    public Vector3 salonKapisiKonumu;
 
     [Header("Fade (Kararma) Ayarları")]
-    public Image fadeImage; // Editörden Siyah Resmi buraya sürükle
-    public float fadeDuration = 1.0f; // Ekranın kararma süresi
+    public Image fadeImage;
+    public float fadeDuration = 1.0f;
 
     [Header("Ses Ayarları")]
     public AudioClip idleGrowlSFX;
@@ -40,11 +41,10 @@ public class MonsterAI : MonoBehaviour
     private Animator anim;
     private int currentWaypointIndex = 0;
 
-    // Durum Değişkenleri
     private bool isScreaming = false;
     private bool isChasing = false;
     private bool isWaiting = false;
-    private bool isGameEnding = false; // Oyun bitiş kilidi
+    private bool isGameEnding = false;
 
     void Start()
     {
@@ -54,7 +54,6 @@ public class MonsterAI : MonoBehaviour
 
         if (playerTarget == null) Debug.LogError("Player Target atanmadı!");
 
-        // Ekranın başında siyahlığı kaldır (Şeffaf yap)
         if (fadeImage != null)
         {
             fadeImage.canvasRenderer.SetAlpha(0.0f);
@@ -71,11 +70,8 @@ public class MonsterAI : MonoBehaviour
     void Update()
     {
         if (playerTarget == null) return;
-
-        // Oyun bitiyorsa (Fade başladıysa) hiçbir şey yapma
         if (isGameEnding) return;
 
-        // 1. ANİMASYON HIZI
         if (anim != null && agent != null && agent.enabled)
         {
             anim.SetFloat("Speed", agent.velocity.magnitude);
@@ -83,20 +79,17 @@ public class MonsterAI : MonoBehaviour
 
         if (isScreaming) return;
 
-        // 2. GÖRÜŞ
         if (!isChasing && CanSeePlayer())
         {
             StartCoroutine(ScreamAndChaseSequence());
         }
 
-        // 3. KOVALAMA
         if (isChasing)
         {
             agent.isStopped = false;
             agent.SetDestination(playerTarget.position);
         }
 
-        // 4. DEVRİYE
         if (!isStationary && !isChasing && !isWaiting)
         {
             if (!agent.pathPending && agent.remainingDistance < 0.5f)
@@ -106,10 +99,8 @@ public class MonsterAI : MonoBehaviour
         }
     }
 
-    // --- TEMAS HALİNDE FADE VE RESET ---
     void OnTriggerEnter(Collider other)
     {
-        // Eğer zaten oyun bitiyorsa tekrar tetiklenme
         if (isGameEnding) return;
 
         if (other.CompareTag("Player"))
@@ -120,38 +111,38 @@ public class MonsterAI : MonoBehaviour
 
     IEnumerator FadeAndResetSequence()
     {
-        isGameEnding = true; // Kilidi kapat
+        isGameEnding = true;
 
-        // Sadece Canavarı Durdur (Müzik DEVAM EDECEK)
+        // --- OYUNCUYU YERE YIK (YENİ KISIM) ---
+        // Oyuncunun üzerindeki KidsScript'i bul ve ForceFaint'i çağır
+        KidsScript playerScript = playerTarget.GetComponent<KidsScript>();
+        if (playerScript != null)
+        {
+            playerScript.ForceFaint();
+        }
+
+        // Canavarı Durdur
         if (agent != null) agent.isStopped = true;
         if (anim != null) anim.SetFloat("Speed", 0);
 
-        // DİKKAT: audioSource.Stop() buradan kaldırıldı.
-
-        // Ekranı Karart (Fade Out)
+        // Ekranı Karart
         if (fadeImage != null)
         {
             fadeImage.CrossFadeAlpha(1f, fadeDuration, false);
         }
 
-        // Kararma süresi kadar bekle (Müzik çalmaya devam ediyor)
         yield return new WaitForSeconds(fadeDuration);
 
-        // --- SAHNE YÜKLENMEDEN HEMEN ÖNCE ---
-        // Müziği burada durduruyoruz ki sahne geçişinde ses takılması olmasın
         audioSource.Stop();
 
-        // 1. TimerManager'a ışınlanma emrini ver
         TimerManager.isinlanacakKonum = salonKapisiKonumu;
 
-        // 2. Sahneyi Yenile
         UnityEngine.SceneManagement.SceneManager.LoadScene(
             UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
         );
     }
 
-    // --- DİĞER FONKSİYONLAR (AYNI KALDI) ---
-
+    // --- DİĞER FONKSİYONLAR ---
     IEnumerator ScreamAndChaseSequence()
     {
         isScreaming = true;
@@ -168,7 +159,7 @@ public class MonsterAI : MonoBehaviour
 
         yield return new WaitForSeconds(screamAnimDuration);
 
-        if (!isGameEnding) // Fade girdiyse müziği başlatma
+        if (!isGameEnding)
         {
             if (chaseMusic != null)
             {
@@ -190,11 +181,8 @@ public class MonsterAI : MonoBehaviour
     {
         isWaiting = true;
         agent.isStopped = true;
-
         yield return new WaitForSeconds(waitAtPoint);
-
         if (isChasing || isScreaming || isGameEnding) yield break;
-
         currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Length;
         MoveToNextWaypoint();
         isWaiting = false;
@@ -210,22 +198,15 @@ public class MonsterAI : MonoBehaviour
     bool CanSeePlayer()
     {
         if (playerTarget == null) return false;
-
         Vector3 targetCenter = playerTarget.position + Vector3.up * 1.0f;
         float distance = Vector3.Distance(eyes.position, targetCenter);
-
         if (distance < 4f) return true;
-        // -------------------------------------------
 
         Vector3 directionToPlayer = (targetCenter - eyes.position).normalized;
-
-        // Açı kontrolü
         if (Vector3.Angle(eyes.forward, directionToPlayer) < visionAngle / 2)
         {
-            // Mesafe kontrolü
             if (distance < visionDistance)
             {
-                // Engel kontrolü
                 if (Physics.Raycast(eyes.position, directionToPlayer, out RaycastHit hit, visionDistance))
                 {
                     if (hit.transform.root == playerTarget.root) return true;
@@ -244,22 +225,17 @@ public class MonsterAI : MonoBehaviour
         audioSource.spatialBlend = 1.0f;
         audioSource.Play();
     }
-    // --- GÖRSEL DEBUG (GIZMOS) ---
+
     private void OnDrawGizmosSelected()
     {
         if (eyes == null) return;
-
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(eyes.position, visionDistance);
-
         Gizmos.color = Color.red;
-
         Vector3 leftBoundary = DirFromAngle(-visionAngle / 2, false);
         Vector3 rightBoundary = DirFromAngle(visionAngle / 2, false);
-
         Gizmos.DrawLine(eyes.position, eyes.position + leftBoundary * visionDistance);
         Gizmos.DrawLine(eyes.position, eyes.position + rightBoundary * visionDistance);
-
         if (isChasing || (playerTarget != null && CanSeePlayer()))
         {
             Gizmos.color = Color.blue;
@@ -269,10 +245,7 @@ public class MonsterAI : MonoBehaviour
 
     private Vector3 DirFromAngle(float angleInDegrees, bool angleIsGlobal)
     {
-        if (!angleIsGlobal)
-        {
-            angleInDegrees += eyes.eulerAngles.y;
-        }
+        if (!angleIsGlobal) angleInDegrees += eyes.eulerAngles.y;
         return new Vector3(Mathf.Sin(angleInDegrees * Mathf.Deg2Rad), 0, Mathf.Cos(angleInDegrees * Mathf.Deg2Rad));
     }
 }

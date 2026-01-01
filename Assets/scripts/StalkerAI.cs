@@ -3,6 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
+using Sample; // KidsScript'e (ForceFaint) ulaşmak için
 
 public class StalkerAI : MonoBehaviour
 {
@@ -20,11 +21,9 @@ public class StalkerAI : MonoBehaviour
     [Range(0f, 1f)]
     public float visionAngleThreshold = 0.4f;
 
-    // --- YENİ EKLENEN SES AYARLARI ---
     [Header("Audio Settings")]
-    public AudioClip walkSound; // Gıcırtı/Adım sesi buraya
+    public AudioClip walkSound;
     private AudioSource audioSource;
-    // ---------------------------------
 
     private NavMeshAgent agent;
     private Camera mainCam;
@@ -36,8 +35,6 @@ public class StalkerAI : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         mainCam = Camera.main;
-
-        // Ses bileşenini alıyoruz
         audioSource = GetComponent<AudioSource>();
 
         if (player == null && mainCam != null)
@@ -81,13 +78,11 @@ public class StalkerAI : MonoBehaviour
 
         if (isVisible)
         {
-            // GÖRÜYORSA DUR VE SESİ KES
             StopEnemy();
             if (anim != null) anim.speed = 0f;
         }
         else
         {
-            // GÖRMÜYORSA HAREKET ET VE SES ÇAL
             MoveEnemy();
             if (anim != null)
             {
@@ -105,7 +100,6 @@ public class StalkerAI : MonoBehaviour
         agent.velocity = Vector3.zero;
         if (anim != null) anim.SetBool("isMoving", false);
 
-        // --- SESİ DURDUR ---
         if (audioSource != null && audioSource.isPlaying)
         {
             audioSource.Stop();
@@ -117,12 +111,10 @@ public class StalkerAI : MonoBehaviour
         agent.isStopped = false;
         agent.SetDestination(player.position);
 
-        // --- SESİ OYNAT ---
-        // Sadece ses çalmıyorsa başlat (Sürekli Play diyip sesi bozmamak için)
         if (audioSource != null && !audioSource.isPlaying && walkSound != null)
         {
             audioSource.clip = walkSound;
-            audioSource.loop = true; // Sürekli çalsın
+            audioSource.loop = true;
             audioSource.Play();
         }
     }
@@ -132,7 +124,6 @@ public class StalkerAI : MonoBehaviour
         isGameOver = true;
         Debug.Log("YAKALANDIN! Saldırı başlıyor...");
 
-        // Yakalandığında sesi kes
         if (audioSource != null) audioSource.Stop();
 
         agent.isStopped = true;
@@ -144,6 +135,20 @@ public class StalkerAI : MonoBehaviour
             anim.SetTrigger("AttackTrigger");
         }
 
+        // --- YENİ EKLENEN KISIM (SADECE BURASI DEĞİŞTİ) ---
+
+        // 1. Vuruş animasyonu için 0.5 saniye bekle
+        yield return new WaitForSeconds(1.5f);
+
+        // 2. Karakteri Bayılt (Işınlanma yok, sadece animasyon)
+        KidsScript playerScript = player.GetComponent<KidsScript>();
+        if (playerScript != null)
+        {
+            playerScript.ForceFaint();
+        }
+
+        // --- EKLEME BİTTİ ---
+
         if (fadeImage != null)
         {
             fadeImage.CrossFadeAlpha(1f, fadeDuration, false);
@@ -151,6 +156,7 @@ public class StalkerAI : MonoBehaviour
 
         yield return new WaitForSeconds(fadeDuration);
 
+        // Sahneyi normal şekilde yeniden yükle
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
