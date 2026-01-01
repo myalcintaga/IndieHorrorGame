@@ -116,22 +116,35 @@ public class StalkerAI : MonoBehaviour
     IEnumerator GameOverSequence()
     {
         isGameOver = true; // Kodu kilitle
-        Debug.Log("YAKALANDIN! Ekran kararıyor...");
+        Debug.Log("YAKALANDIN! Saldırı başlıyor...");
 
-        // Freddy'yi olduğu yerde dondur
-        StopEnemy();
-        if (anim != null) anim.speed = 0f;
+        // 1. Fiziksel hareketi durdur
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
 
-        // Ekranı karart (Fade Out)
-        if (fadeImage != null)
+        // 2. KRİTİK ADIM: Animasyonun oynaması için zamanı normal hıza al!
+        // Eğer bunu yapmazsak, saldırı animasyonu donmuş şekilde başlar.
+        if (anim != null)
         {
-            fadeImage.CrossFadeAlpha(1f, fadeDuration, false); // 1 = Tam Siyah
+            anim.speed = 1f;
+            // 3. Animator'daki "AttackTrigger" tetiğini çek
+            anim.SetTrigger("AttackTrigger");
         }
 
-        // Kararma bitene kadar bekle
+        // 4. Saldırının net görülmesi için çok kısa bir an bekle (İsteğe bağlı)
+        // yield return new WaitForSeconds(0.2f); 
+
+        // 5. Ekranı karart (Fade Out)
+        if (fadeImage != null)
+        {
+            // Kararma süresini biraz kısaltabilirsin ki saldırı daha vurucu olsun
+            fadeImage.CrossFadeAlpha(1f, fadeDuration, false);
+        }
+
+        // 6. Kararma bitene kadar bekle
         yield return new WaitForSeconds(fadeDuration);
 
-        // Sahneyi yeniden yükle
+        // 7. Sahneyi yeniden yükle
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
