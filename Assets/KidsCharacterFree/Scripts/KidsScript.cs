@@ -9,7 +9,6 @@ namespace Sample
         private Animator _Animator;
         private CharacterController _Ctrl;
         private GameObject _View_Camera;
-        // _Light değişkeni silindi (NullReference hatası vermemesi için)
         private SkinnedMeshRenderer _MeshRenderer;
 
         [Header("Camera Settings")]
@@ -55,32 +54,59 @@ namespace Sample
             {Faint, false },
         };
 
+        public bool InputBlocked = false;
+
+        // --- OYUN BAŞLANGIÇ DEĞİŞKENİ ---
+        private bool _IsGameStartFaint = true;
+
         void Start()
         {
             _Animator = GetComponent<Animator>();
             _Ctrl = GetComponent<CharacterController>();
             _View_Camera = GameObject.Find("Main Camera");
 
-            // Işık arama kodu silindi.
-
             Transform bodyTransform = transform.Find("Boy0.Humanoid.Body");
             if (bodyTransform != null)
                 _MeshRenderer = bodyTransform.gameObject.GetComponent<SkinnedMeshRenderer>();
 
-            // Mouse Ayarları
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
-            // Orijinal Boyutları Kaydet 
-            // (Işık hatası giderildiği için burası artık düzgün çalışacak ve eğilme düzelecek)
             _OriginalHeight = _Ctrl.height;
             _OriginalCenterY = _Ctrl.center.y;
+
+            // --- BAŞLANGIÇ AYARLARI ---
+            InputBlocked = true;
+            _Animator.Play(FaintState);
         }
 
         void Update()
         {
             if (PauseManager.GameIsPaused) return;
-            // Mouse Kilidi Aç/Kapa (ESC ile)
+
+            // --- DÜZELTME BURADA YAPILDI ---
+            // Kamera her zaman çalışmalı, karakter baygın olsa bile.
+            // Bu yüzden return'den önceye (en tepeye) aldık.
+            CAMERA();
+
+            // --- YENİ BAŞLANGIÇ MANTIĞI ---
+            if (_IsGameStartFaint)
+            {
+                if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.S) ||
+                    Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.D))
+                {
+                    _Animator.CrossFade(StandUpFaintState, 0.1f, 0, 0);
+                    _IsGameStartFaint = false;
+                    StartCoroutine(EnableInputAfterWakeUp());
+                }
+                // DİKKAT: Buradaki return yüzünden CAMERA aşağıda kalınca çalışmıyordu.
+                // Kamerayı yukarı aldığımız için sorun çözüldü.
+                return;
+            }
+            // --------------------------------
+
+            if (InputBlocked) return;
+
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 Cursor.lockState = CursorLockMode.None;
@@ -92,8 +118,8 @@ namespace Sample
                 Cursor.visible = false;
             }
 
-            CAMERA();
-            // DIRECTION_LIGHT() çağrısı silindi.
+            // CAMERA() buradan kaldırıldı ve en tepeye taşındı.
+
             GRAVITY();
             STATUS();
             CROUCH();
@@ -133,6 +159,18 @@ namespace Sample
             }
         }
 
+        IEnumerator EnableInputAfterWakeUp()
+        {
+            yield return new WaitForSeconds(1.0f);
+            InputBlocked = false;
+        }
+
+        public void ForceFaint()
+        {
+            InputBlocked = true;
+            _Animator.CrossFade(DownState, 0.1f, 0, 0);
+        }
+
         private void STATUS()
         {
             var stateInfo = _Animator.GetCurrentAnimatorStateInfo(0);
@@ -164,8 +202,6 @@ namespace Sample
             _View_Camera.transform.LookAt(targetPos);
         }
 
-        // DIRECTION_LIGHT fonksiyonu tamamen silindi.
-
         private void GRAVITY()
         {
             if (CheckGrounded() && _MoveDirection.y <= 0)
@@ -194,13 +230,12 @@ namespace Sample
         {
             float speed = _Animator.GetFloat(SpeedParameter);
 
-            // --- EĞİLME KONTROLÜ ---
             if (_IsCrouching)
             {
                 if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) ||
                     Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D))
                 {
-                    speed = 0.5f; // Eğilme hızı
+                    speed = 0.5f;
                 }
                 else
                 {
@@ -209,7 +244,6 @@ namespace Sample
             }
             else
             {
-                // Normal Koşma/Yürüme
                 if (Input.GetKey(KeyCode.LeftShift))
                 {
                     if (speed <= 1.5f) speed += 0.01f;
@@ -223,7 +257,6 @@ namespace Sample
             }
             _Animator.SetFloat(SpeedParameter, speed);
 
-            // Hareket Yönü (W)
             var currentState = _Animator.GetCurrentAnimatorStateInfo(0);
             if (Input.GetKey(KeyCode.W))
             {
@@ -249,7 +282,6 @@ namespace Sample
                 }
             }
 
-            // Geri (S)
             if (Input.GetKey(KeyCode.S))
             {
                 if (currentState.fullPathHash == MoveState || _IsCrouching)
@@ -267,7 +299,6 @@ namespace Sample
                 }
             }
 
-            // Dönüşler (A/D)
             if (Input.GetKey(KeyCode.D) && !Input.GetKey(KeyCode.A))
             {
                 transform.Rotate(Vector3.up, 1.0f);
@@ -277,7 +308,6 @@ namespace Sample
                 transform.Rotate(Vector3.up, -1.0f);
             }
 
-            // Animasyon Geçişleri (Tuş Bırakılınca)
             if (!Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.S))
             {
                 if (_Animator.GetCurrentAnimatorStateInfo(0).tagHash != JumpTag && !_IsCrouching)
@@ -336,7 +366,6 @@ namespace Sample
 
             if (isGrounded)
             {
-                // 1. ZIPLAMAYI BAŞLATMA
                 if (Input.GetKeyDown(KeyCode.Space)
                     && stateInfo.tagHash != JumpTag
                     && !_Animator.IsInTransition(0))
@@ -345,18 +374,13 @@ namespace Sample
                     _MoveDirection.y = 3.0f;
                     _Animator.SetFloat(JumpPoseParameter, _MoveDirection.y);
                 }
-
-                // 2. YERE İNİŞ DÜZELTMESİ (BU KISIM EKLENDİ)
-                // Zıplama animasyonundaysak VE Yere basıyorsak -> Normale dön
                 else if (stateInfo.fullPathHash == JumpState && !_Animator.IsInTransition(0) && _MoveDirection.y <= 0.1f)
                 {
-                    // Eğer hareket tuşlarına basılıysa KOŞMAYA dön
                     if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.S) ||
                         Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D))
                     {
                         _Animator.CrossFade(MoveState, 0.1f, 0, 0);
                     }
-                    // Hiçbir şeye basılmıyorsa IDLE'a dön
                     else
                     {
                         _Animator.CrossFade(IdleState, 0.1f, 0, 0);
@@ -401,7 +425,6 @@ namespace Sample
 
         private void CROUCH()
         {
-            // --- EĞİLME BAŞLANGICI ---
             if (Input.GetKeyDown(KeyCode.C))
             {
                 _IsCrouching = true;
@@ -413,12 +436,9 @@ namespace Sample
                 _Animator.CrossFade(CrouchState, 0.1f, 0, 0);
             }
 
-            // --- AYAĞA KALKMA ---
             if (Input.GetKeyUp(KeyCode.C))
             {
                 _IsCrouching = false;
-
-                // Fiziksel boyutları eski haline getir
                 _Ctrl.height = _OriginalHeight;
                 _Ctrl.center = new Vector3(0, _OriginalCenterY, 0);
 
