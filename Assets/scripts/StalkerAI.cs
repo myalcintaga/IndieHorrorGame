@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections;
-using Sample; // KidsScript'e (ForceFaint) ulaşmak için
+using Sample;
 
 public class StalkerAI : MonoBehaviour
 {
@@ -11,6 +11,10 @@ public class StalkerAI : MonoBehaviour
     public Transform player;
     public float moveSpeed = 3.0f;
     public float startDelay = 5.0f;
+
+    // OPTİMİZASYON İÇİN YENİ AYAR
+    [Tooltip("Oyuncu bu mesafeden uzaksa Freddy durur ve ses keser.")]
+    public float sleepDistance = 15.0f;
 
     [Header("Game Over & VFX")]
     public float catchDistance = 1.0f;
@@ -65,8 +69,18 @@ public class StalkerAI : MonoBehaviour
             return;
         }
 
-        // Yakalama Kontrolü
+        // --- OPTİMİZASYON VE SES KESME (YENİ KISIM) ---
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
+        // Eğer oyuncu belirlenen mesafeden (sleepDistance) daha uzaksa:
+        if (distanceToPlayer > sleepDistance)
+        {
+            StopEnemy(); // Sesi ve hareketi durdur
+            return;      // Aşağıdaki kodları (Görüş hesaplamalarını vs.) hiç çalıştırma
+        }
+        // ----------------------------------------------
+
+        // Yakalama Kontrolü
         if (distanceToPlayer < catchDistance)
         {
             StartCoroutine(GameOverSequence());
@@ -96,10 +110,15 @@ public class StalkerAI : MonoBehaviour
 
     void StopEnemy()
     {
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
         if (anim != null) anim.SetBool("isMoving", false);
 
+        // SESİ DURDUR (En önemlisi burası)
         if (audioSource != null && audioSource.isPlaying)
         {
             audioSource.Stop();
@@ -108,8 +127,11 @@ public class StalkerAI : MonoBehaviour
 
     void MoveEnemy()
     {
-        agent.isStopped = false;
-        agent.SetDestination(player.position);
+        if (agent != null)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+        }
 
         if (audioSource != null && !audioSource.isPlaying && walkSound != null)
         {
@@ -135,19 +157,13 @@ public class StalkerAI : MonoBehaviour
             anim.SetTrigger("AttackTrigger");
         }
 
-        // --- YENİ EKLENEN KISIM (SADECE BURASI DEĞİŞTİ) ---
+        yield return new WaitForSeconds(0.5f);
 
-        // 1. Vuruş animasyonu için 0.5 saniye bekle
-        yield return new WaitForSeconds(1.5f);
-
-        // 2. Karakteri Bayılt (Işınlanma yok, sadece animasyon)
         KidsScript playerScript = player.GetComponent<KidsScript>();
         if (playerScript != null)
         {
             playerScript.ForceFaint();
         }
-
-        // --- EKLEME BİTTİ ---
 
         if (fadeImage != null)
         {
@@ -156,7 +172,6 @@ public class StalkerAI : MonoBehaviour
 
         yield return new WaitForSeconds(fadeDuration);
 
-        // Sahneyi normal şekilde yeniden yükle
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
