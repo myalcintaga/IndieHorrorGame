@@ -69,6 +69,19 @@ namespace Sample
             if (bodyTransform != null)
                 _MeshRenderer = bodyTransform.gameObject.GetComponent<SkinnedMeshRenderer>();
 
+            // --- ZORLA SIFIRLAMA KODLARI (BURASI EKLENDİ) ---
+            // 1. Eğer bir Pause sistemi varsa, oyun başladığında "Duraklatılmadı" olarak işaretle.
+            // (PauseManager sınıfına erişim hatası alırsan bu if bloğunu silip sadece Time.timeScale satırını bırak)
+            if (typeof(PauseManager) != null)
+            {
+                PauseManager.GameIsPaused = false;
+            }
+
+            // 2. Zamanı tekrar akıt (Eğer 0'da kaldıysa oyun donuk başlar)
+            Time.timeScale = 1.0f;
+            // -----------------------------------------------
+
+            // Mouse Ayarları (Bunu en sona koyduk ki garanti olsun)
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
@@ -78,6 +91,12 @@ namespace Sample
             // --- BAŞLANGIÇ AYARLARI ---
             InputBlocked = true;
             _Animator.Play(FaintState);
+
+            // --- ROTASYON KODU (Önceki adımda eklediğimiz) ---
+            if (Vector3.Distance(transform.position, new Vector3(4.96f, -1.29f, 4.35f)) < 1.0f)
+            {
+                transform.rotation = Quaternion.Euler(0, -90, 0);
+            }
         }
 
         void Update()
