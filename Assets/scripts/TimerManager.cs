@@ -1,13 +1,17 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Sample; // PauseManager için gerekli
 
 public class TimerManager : MonoBehaviour
 {
     public static TimerManager Instance;
     public float gecenSure = 0f;
 
-    // MonsterAI ışınlanma verisi (Aynı kalıyor)
+    // --- YENİ: Sayaç çalışıyor mu kontrolü ---
+    public bool timerIsActive = true;
+
+    // MonsterAI ışınlanma verisi
     public static Vector3? isinlanacakKonum = null;
 
     private TextMeshProUGUI sureTexti;
@@ -40,7 +44,6 @@ public class TimerManager : MonoBehaviour
         GameObject uiObj = GameObject.Find("TimeText");
         if (uiObj != null) sureTexti = uiObj.GetComponent<TextMeshProUGUI>();
 
-        // Işınlanma mantığı (Aynı kalıyor)
         if (isinlanacakKonum.HasValue)
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -52,19 +55,37 @@ public class TimerManager : MonoBehaviour
                 if (cc != null) cc.enabled = true;
             }
         }
+
+        // --- YENİ: Ana Menüye dönüldüyse sayacı ve süreyi sıfırla ---
+        // (Build Settings'de MainMenu indexi genelde 0'dır, kontrol et)
+        if (scene.buildIndex == 0)
+        {
+            gecenSure = 0f;
+            timerIsActive = true;
+        }
     }
 
-    // --- YENİ EKLENEN FONKSİYON: SÜREYİ SIFIRLA ---
     public void ResetTimer()
     {
         gecenSure = 0f;
+        timerIsActive = true;
     }
+
+    // --- HATA VEREN FONKSİYON EKLENDİ ---
+    // WakeUpManager artık bu fonksiyonu bulabilecek
+    public static void SayaciDurdur()
+    {
+        if (Instance != null)
+        {
+            Instance.timerIsActive = false;
+        }
+    }
+    // ------------------------------------
 
     void Update()
     {
-        // EĞER OYUN DURAKLATILDIYSA SAYMAYI KES
-        // (PauseManager namespace'i Sample ise, yukarıya using Sample; eklemeyi unutma)
-        if (PauseManager.GameIsPaused) 
+        // Oyun duraklatıldıysa VEYA Sayaç durdurulduysa sayma
+        if (PauseManager.GameIsPaused || !timerIsActive)
             return;
 
         gecenSure += Time.deltaTime;

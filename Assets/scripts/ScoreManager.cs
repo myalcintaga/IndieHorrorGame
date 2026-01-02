@@ -81,7 +81,7 @@ public class ScoreManager : MonoBehaviour
 
         // 4. Ekrana Yazdır (İlk 10 Kişi)
         scoreListDisplay.text = "";
-        for (int i = 0; i < scoreList.Count && i < 10; i++)
+        for (int i = 0; i < scoreList.Count && i < 6; i++)
         {
             float m = Mathf.FloorToInt(scoreList[i].time / 60);
             float s = Mathf.FloorToInt(scoreList[i].time % 60);
