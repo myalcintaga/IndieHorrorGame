@@ -63,6 +63,8 @@ public class PauseManager : MonoBehaviour
             TimerManager.Instance.ResetTimer();
         }
 
+        TimerManager.isinlanacakKonum = new Vector3(4.96f, -1.29f, 4.35f);
+
         // 3. Sahneyi Yeniden Yükle
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
@@ -72,5 +74,19 @@ public class PauseManager : MonoBehaviour
     {
         Debug.Log("Oyundan Çıkılıyor...");
         Application.Quit();
+    }
+
+    public void LoadMainMenu()
+    {
+        // 1. Önce zamanı normale döndür (Çok Önemli!)
+        // Bunu yapmazsan ana menüye geçsen bile oyun donuk kalır.
+        Time.timeScale = 1f;
+
+        // 2. Oyunun duraklatıldı değişkenini false yap (Hata önlemek için)
+        // (Eğer static bir değişken kullanıyorsan, örneğin: GameIsPaused = false;)
+
+        // 3. Ana Menü sahnesini yükle
+        // "MainMenu" yerine senin sahnenin adı tam olarak neyse onu yaz.
+        SceneManager.LoadScene("MainMenu");
     }
 }
