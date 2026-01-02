@@ -37,18 +37,20 @@ public class WakeUpManager : MonoBehaviour
 
     IEnumerator WakeUpSequence()
     {
+        yield return new WaitForSeconds(1.0f);
+        if (whiteScreen != null)
+        {
+            whiteScreen.CrossFadeAlpha(0.0f, fadeDuration, false);
+        }
+
         if (wakeUpVoice != null)
         {
             audioSource.clip = wakeUpVoice;
             audioSource.Play();
         }
 
-        if (whiteScreen != null)
-        {
-            whiteScreen.CrossFadeAlpha(0.0f, fadeDuration, false);
-        }
 
-        yield return new WaitForSeconds(1.5f);
+        //yield return new WaitForSeconds(1.5f);
 
         if (cameraAnim != null)
         {
