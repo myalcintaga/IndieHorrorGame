@@ -2995,6 +2995,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimerManager
   gecenSure: 0
+  timerIsActive: 1
 --- !u!1 &760772175
 GameObject:
   m_ObjectHideFlags: 0
@@ -6848,6 +6849,7 @@ MonoBehaviour:
   player: {fileID: 863174870}
   moveSpeed: 0.85
   startDelay: 5
+  sleepDistance: 15
   catchDistance: 1.8
   fadeImage: {fileID: 300616097}
   fadeDuration: 1.5

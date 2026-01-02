@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/HighScoreScene.unity
     guid: f1fc5a4879e561849ae8862f3892b19b
+  - enabled: 1
+    path: Assets/Scenes/NameOnBoard.unity
+    guid: 54f175878dd9cd3488b77c3afd05cd08
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 289c1b55c9541489481df5cc06664110, type: 3}
   m_UseUCBPForAssetBundles: 0
