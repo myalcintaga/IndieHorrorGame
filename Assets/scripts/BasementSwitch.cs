@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI; // UI kütüphanesi eklendi
+using UnityEngine.UI;
 using System.Collections;
 
 public class BasementSwitch : MonoBehaviour
@@ -10,9 +10,12 @@ public class BasementSwitch : MonoBehaviour
     public AudioClip switchSound;
     public int nextSceneIndex = 2;
 
+    [Header("UI Ayarları")]
+    public GameObject interactionText; // YENİ: "Press E to turn on light" yazısı
+
     [Header("White Screen Fade")]
     public Image whiteScreen; // Canvas'taki Beyaz Resim
-    public float fadeDuration = 2.0f; // 2 saniyede beyazlaşsın
+    public float fadeDuration = 2.0f;
 
     private bool isActivated = false;
     private AudioSource audioSource;
@@ -29,6 +32,32 @@ public class BasementSwitch : MonoBehaviour
             whiteScreen.gameObject.SetActive(true);
             whiteScreen.canvasRenderer.SetAlpha(0.0f);
         }
+
+        // Başlangıçta etkileşim yazısı kapalı olsun
+        if (interactionText != null)
+        {
+            interactionText.SetActive(false);
+        }
+    }
+
+    // YENİ: Oyuncu alana girince yazıyı göster
+    void OnTriggerEnter(Collider other)
+    {
+        if (isActivated) return; // Zaten bastıysa tekrar gösterme
+
+        if (other.CompareTag("Player"))
+        {
+            if (interactionText != null) interactionText.SetActive(true);
+        }
+    }
+
+    // YENİ: Oyuncu alandan çıkarsa yazıyı gizle
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            if (interactionText != null) interactionText.SetActive(false);
+        }
     }
 
     void OnTriggerStay(Collider other)
@@ -39,6 +68,9 @@ public class BasementSwitch : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.E))
             {
+                // Tuşa basıldığı an yazıyı gizle
+                if (interactionText != null) interactionText.SetActive(false);
+
                 StartCoroutine(FinishGameSequence());
             }
         }

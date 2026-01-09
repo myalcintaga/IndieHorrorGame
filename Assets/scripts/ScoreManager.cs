@@ -79,7 +79,7 @@ public class ScoreManager : MonoBehaviour
         // 3. SÜREYE GÖRE SIRALA (En kısa süre en üstte)
         scoreList = scoreList.OrderBy(x => x.time).ToList();
 
-        // 4. Ekrana Yazdır (İlk 10 Kişi)
+        // 4. Ekrana Yazdır (İlk 6 Kişi)
         scoreListDisplay.text = "";
         for (int i = 0; i < scoreList.Count && i < 6; i++)
         {
